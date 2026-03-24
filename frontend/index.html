@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Kaspim — Finance Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f2eb;
+  --surface:#fff;
+  --surface2:#f0ece1;
+  --border:#e0d9cc;
+  --ink:#1a1814;
+  --ink2:#6b6355;
+  --accent:#1a1814;
+  --lime:#c8f135;
+  --lime2:#a8d420;
+  --danger:#e53935;
+  --radius:14px;
+  --shadow:0 2px 12px rgba(26,24,20,0.08);
+}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'DM Mono',monospace;
+  min-height:100vh;
+}
+/* grain */
+body::after{
+  content:'';position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:9999;
+}
+
+/* ── AUTH ── */
+.auth-wrap{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:20px;
+}
+.auth-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:24px;
+  padding:44px 40px;
+  width:100%;max-width:420px;
+  box-shadow:var(--shadow);
+}
+.auth-logo{
+  font-family:'Syne',sans-serif;font-size:2.2rem;font-weight:800;
+  letter-spacing:-2px;margin-bottom:6px;
+}
+.auth-logo span{
+  background:var(--lime);
+  padding:2px 8px;border-radius:6px;
+  color:var(--ink);
+}
+.auth-sub{font-size:0.72rem;color:var(--ink2);margin-bottom:32px;letter-spacing:1px;text-transform:uppercase;}
+.auth-tab-row{display:flex;gap:4px;margin-bottom:28px;background:var(--surface2);border-radius:10px;padding:4px;}
+.auth-tab{
+  flex:1;padding:9px;text-align:center;border:none;background:none;
+  font-family:'DM Mono',monospace;font-size:0.78rem;
+  color:var(--ink2);border-radius:8px;cursor:pointer;transition:all 0.2s;
+}
+.auth-tab.active{background:var(--accent);color:#fff;font-weight:500;}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;color:var(--ink2);margin-bottom:6px;}
+.field input{
+  width:100%;background:var(--surface2);border:1px solid var(--border);
+  border-radius:10px;padding:13px 14px;
+  font-family:'DM Mono',monospace;font-size:0.88rem;color:var(--ink);
+  outline:none;transition:border-color 0.2s;
+}
+.field input:focus{border-color:var(--accent);}
+.btn-primary{
+  width:100%;background:var(--accent);color:#fff;border:none;
+  border-radius:10px;padding:14px;
+  font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;
+  cursor:pointer;transition:all 0.15s;margin-top:4px;
+}
+.btn-primary:hover{background:#333;transform:translateY(-1px);}
+.btn-primary:active{transform:translateY(0);}
+.btn-primary:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+.err-msg{background:#fff0f0;border:1px solid #ffd0d0;border-radius:8px;padding:10px 14px;font-size:0.75rem;color:var(--danger);margin-bottom:14px;}
+
+/* ── APP LAYOUT ── */
+.app-layout{display:flex;min-height:100vh;}
+.sidebar{
+  width:220px;flex-shrink:0;
+  background:var(--accent);color:#fff;
+  display:flex;flex-direction:column;
+  padding:32px 20px;
+  position:sticky;top:0;height:100vh;
+}
+.s-logo{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;letter-spacing:-1.5px;margin-bottom:4px;}
+.s-logo span{color:var(--lime);}
+.s-user{font-size:0.65rem;opacity:0.5;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:36px;}
+.s-nav{flex:1;display:flex;flex-direction:column;gap:4px;}
+.s-item{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 14px;border-radius:10px;
+  font-size:0.8rem;color:rgba(255,255,255,0.6);
+  cursor:pointer;transition:all 0.15s;border:none;background:none;
+  font-family:'DM Mono',monospace;text-align:left;
+}
+.s-item:hover{background:rgba(255,255,255,0.1);color:#fff;}
+.s-item.active{background:var(--lime);color:var(--ink);font-weight:500;}
+.s-item .icon{font-size:1rem;width:20px;text-align:center;}
+.s-logout{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 14px;border-radius:10px;
+  font-size:0.75rem;color:rgba(255,255,255,0.4);
+  cursor:pointer;border:none;background:none;
+  font-family:'DM Mono',monospace;
+  transition:all 0.15s;margin-top:8px;
+}
+.s-logout:hover{color:rgba(255,255,255,0.8);}
+
+.main{flex:1;overflow-y:auto;padding:36px 32px;}
+.page-title{
+  font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;
+  letter-spacing:-1px;margin-bottom:6px;
+}
+.page-sub{font-size:0.7rem;color:var(--ink2);text-transform:uppercase;letter-spacing:2px;margin-bottom:28px;}
+
+/* ── STAT CARDS ── */
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px;}
+.stat-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px 22px;
+}
+.stat-card.accent{background:var(--lime);border-color:var(--lime2);}
+.stat-label{font-size:0.62rem;text-transform:uppercase;letter-spacing:2px;color:var(--ink2);margin-bottom:8px;}
+.stat-card.accent .stat-label{color:rgba(26,24,20,0.55);}
+.stat-value{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;letter-spacing:-1px;line-height:1;}
+.stat-hint{font-size:0.65rem;color:var(--ink2);margin-top:4px;}
+
+/* ── CHARTS ── */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;}
+.chart-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:22px;
+}
+.chart-title{font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;color:var(--ink2);margin-bottom:16px;}
+.chart-wrap{position:relative;height:220px;}
+
+/* ── ADD SPENDING FORM ── */
+.add-section{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:24px;margin-bottom:28px;
+}
+.add-title{font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;color:var(--ink2);margin-bottom:16px;}
+.add-grid{display:grid;grid-template-columns:1fr 120px 160px 130px auto;gap:10px;align-items:end;}
+.add-field label{display:block;font-size:0.6rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--ink2);margin-bottom:5px;}
+.add-field input,.add-field select{
+  width:100%;background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;padding:10px 12px;
+  font-family:'DM Mono',monospace;font-size:0.82rem;color:var(--ink);
+  outline:none;transition:border-color 0.2s;
+}
+.add-field input:focus,.add-field select:focus{border-color:var(--accent);}
+.btn-add{
+  background:var(--accent);color:#fff;border:none;
+  border-radius:8px;padding:10px 18px;
+  font-family:'Syne',sans-serif;font-size:0.85rem;font-weight:700;
+  cursor:pointer;white-space:nowrap;transition:all 0.15s;height:38px;
+}
+.btn-add:hover{background:#333;}
+.btn-add:disabled{opacity:0.4;cursor:not-allowed;}
+
+/* ── SPENDING LIST ── */
+.list-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.list-title{font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;color:var(--ink2);}
+.filter-row{display:flex;gap:8px;}
+.filter-select{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;padding:7px 10px;
+  font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--ink);outline:none;
+}
+
+.spending-item{
+  display:flex;align-items:center;gap:14px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:14px 16px;margin-bottom:8px;
+  animation:fadeUp 0.2s ease;transition:border-color 0.15s;
+}
+.spending-item:hover{border-color:#ccc;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.cat-badge{
+  width:38px;height:38px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.1rem;flex-shrink:0;
+}
+.sp-info{flex:1;min-width:0;}
+.sp-desc{font-size:0.85rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sp-meta{font-size:0.63rem;color:var(--ink2);margin-top:2px;text-transform:uppercase;letter-spacing:1px;}
+.sp-amount{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700;flex-shrink:0;}
+.btn-del{
+  background:none;border:1px solid transparent;border-radius:7px;
+  color:var(--ink2);cursor:pointer;padding:5px 7px;font-size:0.9rem;
+  transition:all 0.15s;flex-shrink:0;
+}
+.btn-del:hover{color:var(--danger);border-color:#fdd;background:#fff5f5;}
+
+.empty-state{
+  text-align:center;padding:50px 20px;
+  border:1px dashed var(--border);border-radius:var(--radius);
+  color:var(--ink2);font-size:0.8rem;
+}
+.empty-icon{font-size:2.2rem;margin-bottom:10px;}
+
+/* month picker */
+.month-pill{
+  display:flex;align-items:center;gap:8px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:100px;padding:7px 16px;font-size:0.72rem;
+  margin-bottom:24px;width:fit-content;
+}
+.month-pill input{border:none;background:none;font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--ink);outline:none;}
+
+/* loading spinner */
+.spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* responsive */
+@media(max-width:860px){
+  .sidebar{display:none;}
+  .stat-grid{grid-template-columns:1fr 1fr;}
+  .charts-grid{grid-template-columns:1fr;}
+  .add-grid{grid-template-columns:1fr 1fr;gap:8px;}
+  .main{padding:20px 16px;}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+const API = 'http://localhost:8000';
+
+const CATS = {
+  food:          { label:'Food',          emoji:'🍕', color:'#ff6b35', bg:'rgba(255,107,53,0.12)' },
+  transport:     { label:'Transport',     emoji:'🚌', color:'#339af0', bg:'rgba(51,154,240,0.12)' },
+  shopping:      { label:'Shopping',      emoji:'🛍️', color:'#cc5de8', bg:'rgba(204,93,232,0.12)' },
+  subscriptions: { label:'Subscriptions', emoji:'📱', color:'#51cf66', bg:'rgba(81,207,102,0.12)' },
+  entertainment: { label:'Entertainment', emoji:'🎮', color:'#fcc419', bg:'rgba(252,196,25,0.12)' },
+  health:        { label:'Health',        emoji:'💊', color:'#f783ac', bg:'rgba(247,131,172,0.12)' },
+  education:     { label:'Education',     emoji:'📚', color:'#74c0fc', bg:'rgba(116,192,252,0.12)' },
+  travel:        { label:'Travel',        emoji:'✈️', color:'#20c997', bg:'rgba(32,201,151,0.12)' },
+  other:         { label:'Other',         emoji:'📦', color:'#868e96', bg:'rgba(134,142,150,0.12)' },
+};
+
+// ── API helpers ──────────────────────────────────────────
+async function apiFetch(path, opts = {}) {
+  const token = localStorage.getItem('kaspim_token');
+  const res = await fetch(`${API}${path}`, {
+    ...opts,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(opts.headers || {}),
+    },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Request failed');
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+// ── Auth Page ────────────────────────────────────────────
+function AuthPage({ onLogin }) {
+  const [tab, setTab]       = useState('login');
+  const [name, setName]     = useState('');
+  const [email, setEmail]   = useState('');
+  const [pass, setPass]     = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError]   = useState('');
+
+  const submit = async () => {
+    setLoading(true); setError('');
+    try {
+      if (tab === 'signup') {
+        const data = await apiFetch('/auth/signup', {
+          method: 'POST',
+          body: JSON.stringify({ name, email, password: pass }),
+        });
+        localStorage.setItem('kaspim_token', data.access_token);
+        onLogin(data.name);
+      } else {
+        const form = new URLSearchParams({ username: email, password: pass });
+        const res = await fetch(`${API}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: form,
+        });
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail); }
+        const data = await res.json();
+        localStorage.setItem('kaspim_token', data.access_token);
+        onLogin(data.name);
+      }
+    } catch (e) {
+      setError(e.message);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="auth-wrap">
+      <div className="auth-card">
+        <div className="auth-logo">kasp<span>im</span></div>
+        <div className="auth-sub">Personal Finance Tracker</div>
+        <div className="auth-tab-row">
+          <button className={`auth-tab ${tab==='login'?'active':''}`} onClick={()=>{setTab('login');setError('');}}>Login</button>
+          <button className={`auth-tab ${tab==='signup'?'active':''}`} onClick={()=>{setTab('signup');setError('');}}>Sign Up</button>
+        </div>
+        {error && <div className="err-msg">{error}</div>}
+        {tab === 'signup' && (
+          <div className="field">
+            <label>Full Name</label>
+            <input value={name} onChange={e=>setName(e.target.value)} placeholder="Your name"/>
+          </div>
+        )}
+        <div className="field">
+          <label>Email</label>
+          <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com"
+            onKeyDown={e=>e.key==='Enter'&&submit()}/>
+        </div>
+        <div className="field">
+          <label>Password</label>
+          <input type="password" value={pass} onChange={e=>setPass(e.target.value)} placeholder="••••••••"
+            onKeyDown={e=>e.key==='Enter'&&submit()}/>
+        </div>
+        <button className="btn-primary" onClick={submit} disabled={loading}>
+          {loading ? <span className="spinner"/> : (tab==='login' ? 'Login →' : 'Create Account →')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Bar Chart ────────────────────────────────────────────
+function BarChart({ data }) {
+  const ref = useRef(null);
+  const chartRef = useRef(null);
+  useEffect(() => {
+    if (!data || !data.length) return;
+    if (chartRef.current) chartRef.current.destroy();
+    chartRef.current = new Chart(ref.current, {
+      type: 'bar',
+      data: {
+        labels: data.map(d => d.month),
+        datasets: [{
+          label: 'Spent (₪)',
+          data: data.map(d => d.total),
+          backgroundColor: '#1a1814',
+          borderRadius: 8,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { family: 'DM Mono', size: 11 } } },
+          y: { grid: { color: '#f0ece1' }, ticks: { font: { family: 'DM Mono', size: 11 }, callback: v => `₪${v}` } }
+        }
+      }
+    });
+    return () => chartRef.current?.destroy();
+  }, [data]);
+  return <canvas ref={ref}/>;
+}
+
+// ── Pie Chart ────────────────────────────────────────────
+function PieChart({ data }) {
+  const ref = useRef(null);
+  const chartRef = useRef(null);
+  useEffect(() => {
+    if (!data || !data.length) return;
+    if (chartRef.current) chartRef.current.destroy();
+    chartRef.current = new Chart(ref.current, {
+      type: 'doughnut',
+      data: {
+        labels: data.map(d => CATS[d.category]?.label || d.category),
+        datasets: [{
+          data: data.map(d => d.total),
+          backgroundColor: data.map(d => CATS[d.category]?.color || '#868e96'),
+          borderWidth: 0,
+          hoverOffset: 6,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        cutout: '65%',
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: { font: { family: 'DM Mono', size: 11 }, padding: 12, boxWidth: 12, boxHeight: 12 }
+          }
+        }
+      }
+    });
+    return () => chartRef.current?.destroy();
+  }, [data]);
+  return <canvas ref={ref}/>;
+}
+
+// ── Dashboard ─────────────────────────────────────────────
+function Dashboard({ userName }) {
+  const now = new Date();
+  const defaultMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const [month, setMonth]       = useState(defaultMonth);
+  const [spendings, setSpendings] = useState([]);
+  const [stats, setStats]       = useState(null);
+  const [filterCat, setFilterCat] = useState('');
+  const [adding, setAdding]     = useState(false);
+  const [loading, setLoading]   = useState(true);
+
+  // new spending form
+  const [desc, setDesc]   = useState('');
+  const [amount, setAmount] = useState('');
+  const [cat, setCat]     = useState('food');
+  const [date, setDate]   = useState(new Date().toISOString().split('T')[0]);
+  const [addErr, setAddErr] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [sp, st] = await Promise.all([
+        apiFetch(`/spendings?month=${month}${filterCat?`&category=${filterCat}`:''}`),
+        apiFetch(`/stats?month=${month}`)
+      ]);
+      setSpendings(sp);
+      setStats(st);
+    } catch(e) { console.error(e); }
+    setLoading(false);
+  }, [month, filterCat]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleAdd = async () => {
+    if (!desc.trim() || !amount || !date) return;
+    setAdding(true); setAddErr('');
+    try {
+      const newItem = await apiFetch('/spendings', {
+        method: 'POST',
+        body: JSON.stringify({ description: desc.trim(), amount: parseFloat(amount), category: cat, date }),
+      });
+      // Update state instantly — no page reload needed
+      setSpendings(prev => [newItem, ...prev]);
+      setStats(prev => {
+        if (!prev) return prev;
+        const amt = parseFloat(amount);
+        const existing = prev.by_category.find(c => c.category === cat);
+        const by_category = existing
+          ? prev.by_category.map(c => c.category === cat ? {...c, total: c.total + amt} : c).sort((a,b) => b.total - a.total)
+          : [...prev.by_category, {category: cat, total: amt}].sort((a,b) => b.total - a.total);
+        return {...prev, total: prev.total + amt, by_category};
+      });
+      setDesc(''); setAmount('');
+    } catch(e) { setAddErr(e.message); }
+    setAdding(false);
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await apiFetch(`/spendings/${id}`, { method: 'DELETE' });
+      setSpendings(prev => prev.filter(s => s.id !== id));
+      setStats(prev => prev ? {...prev, total: prev.total - (spendings.find(s=>s.id===id)?.amount||0)} : prev);
+    } catch(e) { console.error(e); }
+  };
+
+  const topCat = stats?.by_category?.[0];
+  const monthLabel = new Date(month + '-02').toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
+  return (
+    <div className="main">
+      <div className="page-title">Dashboard</div>
+      <div className="page-sub">// {monthLabel}</div>
+
+      {/* Month picker */}
+      <div className="month-pill">
+        <span>📅</span>
+        <input type="month" value={month} onChange={e=>setMonth(e.target.value)}/>
+      </div>
+
+      {/* Stats */}
+      <div className="stat-grid">
+        <div className="stat-card accent">
+          <div className="stat-label">// total spent</div>
+          <div className="stat-value">₪{stats ? Math.round(stats.total) : '—'}</div>
+          <div className="stat-hint">{spendings.length} transactions</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">// top category</div>
+          <div className="stat-value" style={{fontSize:'1.4rem'}}>
+            {topCat ? `${CATS[topCat.category]?.emoji} ${CATS[topCat.category]?.label}` : '—'}
+          </div>
+          <div className="stat-hint">{topCat ? `₪${Math.round(topCat.total)}` : 'no data'}</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">// avg per day</div>
+          <div className="stat-value">
+            ₪{stats && spendings.length ? Math.round(stats.total / new Date(month.split('-')[0], month.split('-')[1], 0).getDate()) : '—'}
+          </div>
+          <div className="stat-hint">this month</div>
+        </div>
+      </div>
+
+      {/* Charts */}
+      {stats && (stats.by_category?.length > 0 || stats.monthly?.length > 0) && (
+        <div className="charts-grid">
+          <div className="chart-card">
+            <div className="chart-title">// spending by category</div>
+            <div className="chart-wrap">
+              {stats.by_category?.length > 0 ? <PieChart data={stats.by_category}/> : <div style={{color:'var(--ink2)',fontSize:'0.8rem',paddingTop:80,textAlign:'center'}}>No data yet</div>}
+            </div>
+          </div>
+          <div className="chart-card">
+            <div className="chart-title">// monthly trend (last 6 months)</div>
+            <div className="chart-wrap">
+              {stats.monthly?.length > 0 ? <BarChart data={stats.monthly}/> : <div style={{color:'var(--ink2)',fontSize:'0.8rem',paddingTop:80,textAlign:'center'}}>No data yet</div>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add spending */}
+      <div className="add-section">
+        <div className="add-title">// add spending</div>
+        {addErr && <div className="err-msg" style={{marginBottom:12}}>{addErr}</div>}
+        <div className="add-grid">
+          <div className="add-field">
+            <label>Description</label>
+            <input placeholder="e.g. Lunch at work" value={desc} onChange={e=>setDesc(e.target.value)}
+              onKeyDown={e=>e.key==='Enter'&&handleAdd()}/>
+          </div>
+          <div className="add-field">
+            <label>Amount ₪</label>
+            <input type="number" placeholder="0" value={amount} onChange={e=>setAmount(e.target.value)}
+              onKeyDown={e=>e.key==='Enter'&&handleAdd()}/>
+          </div>
+          <div className="add-field">
+            <label>Category</label>
+            <select value={cat} onChange={e=>setCat(e.target.value)}>
+              {Object.entries(CATS).map(([k,v])=>(
+                <option key={k} value={k}>{v.emoji} {v.label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="add-field">
+            <label>Date</label>
+            <input type="date" value={date} onChange={e=>setDate(e.target.value)}/>
+          </div>
+          <button className="btn-add" onClick={handleAdd} disabled={adding || !desc.trim() || !amount}>
+            {adding ? <span className="spinner"/> : '+ Add'}
+          </button>
+        </div>
+      </div>
+
+      {/* List */}
+      <div className="list-header">
+        <div className="list-title">// transactions</div>
+        <div className="filter-row">
+          <select className="filter-select" value={filterCat} onChange={e=>setFilterCat(e.target.value)}>
+            <option value="">All categories</option>
+            {Object.entries(CATS).map(([k,v])=>(
+              <option key={k} value={k}>{v.emoji} {v.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {loading ? (
+        <div style={{textAlign:'center',padding:'40px',color:'var(--ink2)'}}>Loading...</div>
+      ) : spendings.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-icon">💸</div>
+          <div>No spendings for this period.</div>
+          <div style={{marginTop:4,fontSize:'0.72rem'}}>Add your first one above!</div>
+        </div>
+      ) : (
+        spendings.map(s => {
+          const c = CATS[s.category] || CATS.other;
+          return (
+            <div key={s.id} className="spending-item">
+              <div className="cat-badge" style={{background:c.bg}}>{c.emoji}</div>
+              <div className="sp-info">
+                <div className="sp-desc">{s.description}</div>
+                <div className="sp-meta">{c.label} · {s.date}</div>
+              </div>
+              <div className="sp-amount" style={{color:c.color}}>₪{s.amount}</div>
+              <button className="btn-del" onClick={()=>handleDelete(s.id)}>✕</button>
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+// ── Root App ──────────────────────────────────────────────
+function App() {
+  const [user, setUser] = useState(null);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem('kaspim_token');
+    if (!token) { setChecking(false); return; }
+    apiFetch('/auth/me')
+      .then(data => setUser(data.name))
+      .catch(() => localStorage.removeItem('kaspim_token'))
+      .finally(() => setChecking(false));
+  }, []);
+
+  const logout = () => {
+    localStorage.removeItem('kaspim_token');
+    setUser(null);
+  };
+
+  if (checking) return (
+    <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',color:'var(--ink2)'}}>
+      Loading...
+    </div>
+  );
+
+  if (!user) return <AuthPage onLogin={name => setUser(name)}/>;
+
+  return (
+    <div className="app-layout">
+      <div className="sidebar">
+        <div className="s-logo">kasp<span>im</span></div>
+        <div className="s-user">// {user}</div>
+        <div className="s-nav">
+          <button className="s-item active">
+            <span className="icon">📊</span> Dashboard
+          </button>
+        </div>
+        <button className="s-logout" onClick={logout}>
+          <span>→</span> Logout
+        </button>
+      </div>
+      <Dashboard userName={user}/>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
